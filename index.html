@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>NSE: CARELOOP Live Share Chart</title>
+<title>CARELOOP Live Market Simulation</title>
 
 <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 
@@ -37,9 +37,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 vertLines: { color: '#f0f0f0' },
                 horzLines: { color: '#f0f0f0' },
             },
-            rightPriceScale: {
-                borderColor: '#ccc',
-            },
+            rightPriceScale: { borderColor: '#ccc' },
             timeScale: {
                 timeVisible: true,
                 secondsVisible: true,
@@ -55,57 +53,61 @@ document.addEventListener("DOMContentLoaded", function () {
         wickDownColor: '#ef5350',
     });
 
-    // ===== STARTING VALUE =====
-    let lastClose = 600;
+    // ===== START PRICE =====
+    let lastPrice = 600;
+    let candle = null;
+    let candleStartTime = Math.floor(Date.now() / 1000);
+    let secondsPassed = 0;
 
-    function generateCandle(time) {
+    function startNewCandle() {
+        candleStartTime = Math.floor(Date.now() / 1000);
+        secondsPassed = 0;
 
-        let open = lastClose;
-
-        // Random up/down movement
-        let change = (Math.random() - 0.5) * 40;
-        let close = open + change;
-
-        let high = Math.max(open, close) + Math.random() * 20;
-        let low = Math.min(open, close) - Math.random() * 20;
-
-        lastClose = close;
-
-        return {
-            time: time,
-            open: parseFloat(open.toFixed(2)),
-            high: parseFloat(high.toFixed(2)),
-            low: parseFloat(low.toFixed(2)),
-            close: parseFloat(close.toFixed(2)),
+        candle = {
+            time: candleStartTime,
+            open: lastPrice,
+            high: lastPrice,
+            low: lastPrice,
+            close: lastPrice,
         };
     }
 
-    // ===== INITIAL DATA (2024–2026 style start) =====
-    let currentTime = Math.floor(Date.now() / 1000) - 60;
+    // Create first candle
+    startNewCandle();
+    candleSeries.setData([candle]);
 
-    let initialData = [];
-
-    for (let i = 0; i < 50; i++) {
-        initialData.push(generateCandle(currentTime));
-        currentTime += 60;
-    }
-
-    candleSeries.setData(initialData);
-
-    // ===== LIVE UPDATE EVERY SECOND =====
+    // ===== LIVE MOVEMENT EVERY SECOND =====
     setInterval(() => {
 
-        let newCandle = generateCandle(currentTime);
-        candleSeries.update(newCandle);
+        secondsPassed++;
 
-        currentTime += 60;
+        // Small gradual movement
+        let change = (Math.random() - 0.5) * 10;
+        lastPrice = lastPrice + change;
+
+        // Update candle values
+        candle.high = Math.max(candle.high, lastPrice);
+        candle.low = Math.min(candle.low, lastPrice);
+        candle.close = lastPrice;
+
+        candleSeries.update({
+            time: candle.time,
+            open: parseFloat(candle.open.toFixed(2)),
+            high: parseFloat(candle.high.toFixed(2)),
+            low: parseFloat(candle.low.toFixed(2)),
+            close: parseFloat(candle.close.toFixed(2)),
+        });
+
+        // After 60 seconds → new candle
+        if (secondsPassed >= 60) {
+            startNewCandle();
+        }
 
     }, 1000);
 
     chart.timeScale().fitContent();
 
 });
-
 </script>
 
 </body>
